@@ -1,0 +1,128 @@
+/* Colorblind simulation filters */
+.colorblind-protanopia {
+  filter: url('#protanopia-filter') contrast(1.1) saturate(0.8);
+}
+.colorblind-deuteranopia {
+  filter: url('#deuteranopia-filter') contrast(1.1) saturate(0.8);
+}
+.colorblind-tritanopia {
+  filter: url('#tritanopia-filter') contrast(1.1) saturate(0.8);
+}
+
+/* SVG filters for colorblind simulation (must be present in the DOM) */
+.colorblind-svg-filters {
+  position: absolute;
+  width: 0;
+  height: 0;
+  pointer-events: none;
+  visibility: hidden;
+}
+@import "tailwindcss";
+
+/* EXPLANATION: CSS Variables are like containers for values
+   We can change these values and everything using them updates automatically */
+
+:root {
+  /* Light theme colors (default) */
+  --background: #EBF5EE;  /* Mint background */
+  --foreground: #1E2333;  /* Dark text */
+  --accent: #D6AFE9;      /* Purple accents */
+  --muted: #606D5D;       /* Sage for subtle elements */
+}
+
+/* EXPLANATION: When dark mode is active, we override the colors */
+[data-theme="dark"] {
+  --background: #1E2333;  /* Dark background */
+  --foreground: #EBF5EE;  /* Light text */
+  --accent: #D6AFE9;      /* Purple stays the same */
+  --muted: #A0AFA5;       /* Lighter sage for dark mode */
+}
+
+
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: Arial, Helvetica, sans-serif;
+  /* EXPLANATION: Smooth transition when switching themes */
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+/* EXPLANATION: Smooth transitions for any element using CSS variables */
+* {
+  transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
+}
+
+/* ==========================================
+   BACKGROUND PATTERNS
+   EXPLANATION: These create subtle, non-distracting background patterns
+   They use CSS gradients and are designed to not interfere with readability
+   ========================================== */
+
+/* EXPLANATION: Dots pattern - small circles in a grid */
+.pattern-dots {
+  background-image: radial-gradient(circle, rgba(0, 0, 0, 0.05) 1px, transparent 1px);
+  background-size: 20px 20px;
+}
+
+[data-theme="dark"] .pattern-dots {
+  background-image: radial-gradient(circle, rgba(255, 255, 255, 0.05) 1px, transparent 1px);
+}
+
+/* EXPLANATION: Stripes pattern - subtle diagonal lines */
+.pattern-stripes {
+  background-image: repeating-linear-gradient(
+    45deg,
+    transparent,
+    transparent 20px,
+    rgba(0, 0, 0, 0.03) 20px,
+    rgba(0, 0, 0, 0.03) 40px
+  );
+}
+
+
+[data-theme="dark"] .pattern-stripes {
+  background-image: repeating-linear-gradient(
+    45deg,
+    transparent,
+    transparent 20px,
+    rgba(255, 255, 255, 0.03) 20px,
+    rgba(255, 255, 255, 0.03) 40px
+  );
+}
+
+/* EXPLANATION: Grid pattern - subtle intersecting lines */
+.pattern-grid {
+  background-image: 
+    linear-gradient(rgba(0, 0, 0, 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 0, 0, 0.03) 1px, transparent 1px);
+  background-size: 30px 30px;
+}
+
+[data-theme="dark"] .pattern-grid {
+  background-image: 
+    linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+  background-size: 30px 30px;
+}
+
+/* EXPLANATION: Waves pattern - gentle wavy lines */
+.pattern-waves {
+  background-image: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 40px,
+    rgba(0, 0, 0, 0.02) 40px,
+    rgba(0, 0, 0, 0.02) 80px
+  );
+}
+
+[data-theme="dark"] .pattern-waves {
+  background-image: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 40px,
+    rgba(255, 255, 255, 0.02) 40px,
+    rgba(255, 255, 255, 0.02) 80px
+  );
+}
