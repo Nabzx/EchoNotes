@@ -61,12 +61,12 @@ body {
 
 /* EXPLANATION: Dots pattern - small circles in a grid */
 .pattern-dots {
-  background-image: radial-gradient(circle, rgba(0, 0, 0, 0.05) 1px, transparent 1px);
-  background-size: 20px 20px;
+  background-image: radial-gradient(circle, rgba(0, 0, 0, 0.08) 1.5px, transparent 1.5px);
+  background-size: 18px 18px;
 }
 
 [data-theme="dark"] .pattern-dots {
-  background-image: radial-gradient(circle, rgba(255, 255, 255, 0.05) 1px, transparent 1px);
+  background-image: radial-gradient(circle, rgba(255, 255, 255, 0.08) 1.5px, transparent 1.5px);
 }
 
 /* EXPLANATION: Stripes pattern - subtle diagonal lines */
@@ -74,9 +74,9 @@ body {
   background-image: repeating-linear-gradient(
     45deg,
     transparent,
-    transparent 20px,
-    rgba(0, 0, 0, 0.03) 20px,
-    rgba(0, 0, 0, 0.03) 40px
+    transparent 16px,
+    rgba(0, 0, 0, 0.06) 16px,
+    rgba(0, 0, 0, 0.06) 32px
   );
 }
 
@@ -85,25 +85,25 @@ body {
   background-image: repeating-linear-gradient(
     45deg,
     transparent,
-    transparent 20px,
-    rgba(255, 255, 255, 0.03) 20px,
-    rgba(255, 255, 255, 0.03) 40px
+    transparent 16px,
+    rgba(255, 255, 255, 0.06) 16px,
+    rgba(255, 255, 255, 0.06) 32px
   );
 }
 
 /* EXPLANATION: Grid pattern - subtle intersecting lines */
 .pattern-grid {
   background-image: 
-    linear-gradient(rgba(0, 0, 0, 0.03) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(0, 0, 0, 0.03) 1px, transparent 1px);
-  background-size: 30px 30px;
+    linear-gradient(rgba(0, 0, 0, 0.06) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 0, 0, 0.06) 1px, transparent 1px);
+  background-size: 24px 24px;
 }
 
 [data-theme="dark"] .pattern-grid {
   background-image: 
-    linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
-  background-size: 30px 30px;
+    linear-gradient(rgba(255, 255, 255, 0.06) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.06) 1px, transparent 1px);
+  background-size: 24px 24px;
 }
 
 /* EXPLANATION: Waves pattern - gentle wavy lines */
@@ -111,9 +111,9 @@ body {
   background-image: repeating-linear-gradient(
     0deg,
     transparent,
-    transparent 40px,
-    rgba(0, 0, 0, 0.02) 40px,
-    rgba(0, 0, 0, 0.02) 80px
+    transparent 30px,
+    rgba(0, 0, 0, 0.04) 30px,
+    rgba(0, 0, 0, 0.04) 60px
   );
 }
 
@@ -121,8 +121,23 @@ body {
   background-image: repeating-linear-gradient(
     0deg,
     transparent,
-    transparent 40px,
-    rgba(255, 255, 255, 0.02) 40px,
-    rgba(255, 255, 255, 0.02) 80px
+    transparent 30px,
+    rgba(255, 255, 255, 0.04) 30px,
+    rgba(255, 255, 255, 0.04) 60px
   );
+}
+
+/* EXPLANATION: Crosshatch pattern - slightly stronger intersecting lines */
+.pattern-crosshatch {
+  background-image:
+    linear-gradient(45deg, rgba(0,0,0,0.06) 1px, transparent 1px),
+    linear-gradient(-45deg, rgba(0,0,0,0.06) 1px, transparent 1px);
+  background-size: 18px 18px;
+}
+
+[data-theme="dark"] .pattern-crosshatch {
+  background-image:
+    linear-gradient(45deg, rgba(255,255,255,0.06) 1px, transparent 1px),
+    linear-gradient(-45deg, rgba(255,255,255,0.06) 1px, transparent 1px);
+  background-size: 18px 18px;
 }
