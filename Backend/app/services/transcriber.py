@@ -1,15 +1,20 @@
+"""
+DEPRECATED: This module is no longer used.
+We have switched from server-side audio transcription (Whisper) to browser-side transcription (Web Speech API).
+This file is kept for reference but is not imported or used anywhere in the active codebase.
+"""
+
 import os
 import tempfile
-from faster_whisper import WhisperModel
+# from faster_whisper import WhisperModel  # Commented out - no longer needed
 from dotenv import load_dotenv
 
 load_dotenv()
 
 WHISPER_MODEL_SIZE = os.getenv("WHISPER_MODEL_SIZE", "small")
 
-# Load model once at import time
-# Uses CPU with int8 to keep it light for hackathon
-model = WhisperModel(WHISPER_MODEL_SIZE, device="cpu", compute_type="int8")
+# DEPRECATED: Model loading removed - we no longer use Whisper
+# model = WhisperModel(WHISPER_MODEL_SIZE, device="cpu", compute_type="int8")
 
 
 def transcribe_chunk(audio_bytes: bytes) -> str:

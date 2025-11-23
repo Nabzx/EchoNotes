@@ -1,9 +1,16 @@
+"""
+DEPRECATED: This worker is no longer used.
+We have switched from server-side audio transcription (Whisper) to browser-side transcription (Web Speech API).
+The frontend now sends text directly to /ws/transcript/{session_id}, so this worker is not needed.
+This file is kept for reference but should not be run.
+"""
+
 import argparse
 import logging
 import time
 
 from app.core.redis_client import redis_client
-from app.services.transcriber import transcribe_chunk
+# from app.services.transcriber import transcribe_chunk  # Commented out - no longer needed
 
 logging.basicConfig(
     level=logging.INFO,

@@ -1,7 +1,9 @@
 "use client";
 import React, { useState, useEffect } from "react";
 import { useTheme } from "./hooks/useTheme";
-import { Volume2, Eye, Type, Palette, Mic, BookOpen, Video, Brain, Sparkles, Settings, Check, Play, Headphones, FileText, Youtube, Trash2, Sun, Moon } from "lucide-react";
+import { useLectureTranscription } from "./hooks/useLectureTranscription";
+import { useEchoNotesSession } from "./hooks/useEchoNotesSession";
+import { Volume2, Eye, Type, Palette, Mic, BookOpen, Video, Brain, Sparkles, Settings, Check, Play, Headphones, FileText, Youtube, Trash2, Sun, Moon, AlertCircle } from "lucide-react";
 export default function EchoNotesLanding() {
   // SVG filters for colorblind simulation (must be present in DOM for filter:url usage)
   const colorblindSVGFilters = (
@@ -36,7 +38,22 @@ export default function EchoNotesLanding() {
     backgroundPattern: 'none'  // 🆕 NEW: Track which pattern is selected
   });
   const [showCustomizer, setShowCustomizer] = useState(false);
-  const [isListening, setIsListening] = useState(false);
+  
+  // Real-time transcription and WebSocket hooks
+  const echoNotesSession = useEchoNotesSession("demo");
+  const {
+    isListening,
+    isSupported: isSpeechSupported,
+    error: speechError,
+    startListening,
+    stopListening,
+    transcript: liveTranscript,
+  } = useLectureTranscription((textChunk) => {
+    // When we get a new transcript chunk, send it to the backend
+    echoNotesSession.sendTranscriptChunk(textChunk);
+  });
+  
+  // Derived state for UI
   const [transcriptProgress, setTranscriptProgress] = useState(0);
 
   // Ensure body gets the correct data-theme attribute for CSS variables
@@ -106,20 +123,16 @@ export default function EchoNotesLanding() {
     bold: '700'
   };
 
+  // Update progress based on whether we're listening and have summaries
   useEffect(() => {
-    if (isListening) {
-      const interval = setInterval(() => {
-        setTranscriptProgress((prev) => {
-          if (prev >= 100) {
-            setIsListening(false);
-            return 0;
-          }
-          return prev + 5;
-        });
-      }, 200);
-      return () => clearInterval(interval);
+    if (isListening && echoNotesSession.summary) {
+      // Show progress when we have summaries
+      setTranscriptProgress((prev) => Math.min(prev + 2, 100));
+    } else if (!isListening) {
+      // Reset progress when stopped
+      setTranscriptProgress(0);
     }
-  }, [isListening]);
+  }, [isListening, echoNotesSession.summary]);
 
   const applyOverlay = () => {
     return { backgroundColor: overlays[customization.overlay] };
@@ -349,8 +362,15 @@ export default function EchoNotesLanding() {
                 Live Lecture Listening
               </h2>
               <button
-                onClick={() => setIsListening(!isListening)}
-                className="px-6 py-3 rounded-lg font-bold flex items-center gap-2 hover:scale-105 transition-transform"
+                onClick={() => {
+                  if (isListening) {
+                    stopListening();
+                  } else {
+                    startListening();
+                  }
+                }}
+                disabled={!isSpeechSupported}
+                className="px-6 py-3 rounded-lg font-bold flex items-center gap-2 hover:scale-105 transition-transform disabled:opacity-50 disabled:cursor-not-allowed"
                 style={{ backgroundColor: isListening ? colors.sage : colors.purple, color: colors.dark }}
               >
                 {isListening ? (
@@ -361,11 +381,33 @@ export default function EchoNotesLanding() {
                 ) : (
                   <>
                     <Play className="w-5 h-5" />
-                    Start Demo
+                    Start Live Notes
                   </>
                 )}
               </button>
             </div>
+
+            {/* Error Messages */}
+            {(speechError || echoNotesSession.transcriptError || echoNotesSession.summaryError) && (
+              <div className="mb-4 p-4 rounded-lg flex items-start gap-2" style={{ backgroundColor: colors.sage, color: colors.dark }}>
+                <AlertCircle className="w-5 h-5 mt-0.5 flex-shrink-0" />
+                <div className="text-sm">
+                  {speechError && <p><strong>Speech Recognition:</strong> {speechError}</p>}
+                  {echoNotesSession.transcriptError && <p><strong>Connection:</strong> {echoNotesSession.transcriptError}</p>}
+                  {echoNotesSession.summaryError && <p><strong>Summary:</strong> {echoNotesSession.summaryError}</p>}
+                </div>
+              </div>
+            )}
+
+            {/* Browser Support Warning */}
+            {!isSpeechSupported && !speechError && (
+              <div className="mb-4 p-4 rounded-lg flex items-start gap-2" style={{ backgroundColor: colors.sage, color: colors.dark }}>
+                <AlertCircle className="w-5 h-5 mt-0.5 flex-shrink-0" />
+                <div className="text-sm">
+                  <p><strong>Browser Not Supported:</strong> Web Speech API is not available in this browser. Please use Chrome or Edge for the best experience.</p>
+                </div>
+              </div>
+            )}
 
             {/* Waveform Visualization */}
             {isListening && (
@@ -385,9 +427,9 @@ export default function EchoNotesLanding() {
               </div>
             )}
 
-            {/* Live Transcript */}
-            <div className="grid md:grid-cols-2 gap-6">
-              {/* Original Audio */}
+            {/* Live Transcript and Summaries */}
+            <div className="grid md:grid-cols-3 gap-6">
+              {/* Live Transcript (What You're Hearing) */}
               <div className={`p-6 rounded-xl relative ${colorblindClass}`} style={{ backgroundColor: colors.sage }}>
                 {/* Overlay for this section only */}
                 {customization.overlay !== 'none' && (
@@ -409,17 +451,14 @@ export default function EchoNotesLanding() {
                 )}
                 <div className="flex items-center gap-2 mb-4">
                   <Headphones className="w-5 h-5" style={{ color: colors.mint }} />
-                  <h3 className="font-bold" style={{ color: colors.mint }}>What You're Hearing</h3>
+                  <h3 className="font-bold" style={{ color: colors.mint }}>Live Transcript</h3>
                 </div>
-                <p className="leading-relaxed" style={{ color: colors.mint }}>
-                  {transcriptProgress > 20 && "In calculus, a function represents a relationship where... "}
-                  {transcriptProgress > 40 && "each input corresponds to exactly one output. "}
-                  {transcriptProgress > 60 && "We use function notation f(x) to denote... "}
-                  {transcriptProgress > 80 && "the dependent variable's value for input x."}
+                <p className="leading-relaxed min-h-[100px]" style={{ color: colors.mint }}>
+                  {liveTranscript || (isListening ? "Listening..." : "Click 'Start Live Notes' to begin transcription.")}
                 </p>
               </div>
 
-              {/* Simplified Notes */}
+              {/* Simple Text (for Dyslexia) */}
               <div className={`p-6 rounded-xl relative ${colorblindClass}`} style={{ backgroundColor: colors.mint }}>
                 {/* Overlay for this section only */}
                 {customization.overlay !== 'none' && (
@@ -441,25 +480,73 @@ export default function EchoNotesLanding() {
                 )}
                 <div className="flex items-center gap-2 mb-4">
                   <FileText className="w-5 h-5" style={{ color: 'var(--foreground)' }} />
-                  <h3 className="font-bold" style={{ color: 'var(--foreground)' }}>Your Clear Notes</h3>
+                  <h3 className="font-bold" style={{ color: 'var(--foreground)' }}>Simple Text</h3>
                 </div>
-                <p className="leading-relaxed" style={{ color: 'var(--foreground)' }}>
-                  {transcriptProgress > 20 && "📝 A function is like a machine: "}
-                  {transcriptProgress > 40 && "you put one number in, and get one number out. "}
-                  {transcriptProgress > 60 && "We write it as f(x). "}
-                  {transcriptProgress > 80 && "The 'x' is what you put in, f(x) is what comes out."}
+                <p className="leading-relaxed min-h-[100px]" style={{ color: 'var(--foreground)' }}>
+                  {echoNotesSession.summary?.simple_text || (isListening ? "Processing..." : "Summaries will appear here when you start listening.")}
                 </p>
-                {transcriptProgress > 90 && (
-                  <div className="mt-4 p-3 rounded-lg flex items-start gap-2" style={{ backgroundColor: colors.purple, color: 'var(--foreground)' }}>
-                    <Youtube className="w-5 h-5 mt-1" style={{ color: colors.dark }} />
-                    <div>
-                      <p className="font-semibold mb-1" style={{ color: 'var(--foreground)' }}>Related Study Videos Found:</p>
-                      <p className="text-sm" style={{ color: 'var(--foreground)' }}>3 videos on "functions" linked below</p>
-                    </div>
-                  </div>
+              </div>
+
+              {/* Expanded Text (for Dyscalculia) */}
+              <div className={`p-6 rounded-xl relative ${colorblindClass}`} style={{ backgroundColor: colors.mint }}>
+                {/* Overlay for this section only */}
+                {customization.overlay !== 'none' && (
+                  <div
+                    aria-hidden="true"
+                    style={{
+                      pointerEvents: 'none',
+                      position: 'absolute',
+                      zIndex: 2,
+                      top: 0,
+                      left: 0,
+                      width: '100%',
+                      height: '100%',
+                      backgroundColor: overlays[customization.overlay],
+                      borderRadius: 'inherit',
+                      transition: 'background-color 0.3s ease',
+                    }}
+                  />
                 )}
+                <div className="flex items-center gap-2 mb-4">
+                  <Brain className="w-5 h-5" style={{ color: 'var(--foreground)' }} />
+                  <h3 className="font-bold" style={{ color: 'var(--foreground)' }}>Detailed Steps</h3>
+                </div>
+                <p className="leading-relaxed min-h-[100px]" style={{ color: 'var(--foreground)' }}>
+                  {echoNotesSession.summary?.expanded_text || (isListening ? "Processing..." : "Step-by-step explanations will appear here.")}
+                </p>
               </div>
             </div>
+
+            {/* Notes for Hearing Impairments */}
+            {echoNotesSession.summary?.notes_for_hearing && (
+              <div className={`mt-6 p-6 rounded-xl relative ${colorblindClass}`} style={{ backgroundColor: colors.sage }}>
+                {/* Overlay for this section only */}
+                {customization.overlay !== 'none' && (
+                  <div
+                    aria-hidden="true"
+                    style={{
+                      pointerEvents: 'none',
+                      position: 'absolute',
+                      zIndex: 2,
+                      top: 0,
+                      left: 0,
+                      width: '100%',
+                      height: '100%',
+                      backgroundColor: overlays[customization.overlay],
+                      borderRadius: 'inherit',
+                      transition: 'background-color 0.3s ease',
+                    }}
+                  />
+                )}
+                <div className="flex items-center gap-2 mb-4">
+                  <Volume2 className="w-5 h-5" style={{ color: colors.mint }} />
+                  <h3 className="font-bold" style={{ color: colors.mint }}>Context & What You Might Have Missed</h3>
+                </div>
+                <p className="leading-relaxed" style={{ color: colors.mint }}>
+                  {echoNotesSession.summary.notes_for_hearing}
+                </p>
+              </div>
+            )}
 
             {/* Progress Bar */}
             {isListening && (

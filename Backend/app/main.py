@@ -66,19 +66,27 @@ async def get_settings(session_id: str):
     }
 
 
-@app.websocket("/ws/audio/{session_id}")
-async def audio_websocket(websocket: WebSocket, session_id: str):
+@app.websocket("/ws/transcript/{session_id}")
+async def transcript_websocket(websocket: WebSocket, session_id: str):
     """
-    Receives binary audio chunks from the frontend and pushes them to Redis.
-    Frontend should send small chunks as binary (ArrayBuffer).
+    Receives text transcript chunks from the frontend (via Web Speech API) and pushes them to Redis.
+    Frontend should send plain text strings as they are transcribed.
     """
     await websocket.accept()
-    stream_key = f"audio:session:{session_id}"
+    
+    # Clear old session data to prevent ghost data
+    redis_client.delete(f"transcript:session:{session_id}")
+    redis_client.delete(f"summary:session:{session_id}")
+    redis_client.delete(f"audio:session:{session_id}")
+    
+    stream_key = f"transcript:session:{session_id}"
 
     try:
         while True:
-            audio_bytes = await websocket.receive_bytes()
-            redis_client.xadd(stream_key, {"chunk": audio_bytes})
+            msg = await websocket.receive_text()
+            # Only process non-empty messages
+            if msg and msg.strip():
+                redis_client.xadd(stream_key, {"text": msg.strip().encode("utf-8")})
     except WebSocketDisconnect:
         # Client disconnected
         pass
@@ -93,8 +101,7 @@ async def summary_websocket(websocket: WebSocket, session_id: str):
     Streams accessibility-focused summaries to the frontend as JSON:
     {
       "simple_text": "...",
-      "expanded_text": "...",
-      "notes_for_hearing": "..."
+      "expanded_text": "..."
     }
     """
     await websocket.accept()
@@ -121,7 +128,6 @@ async def summary_websocket(websocket: WebSocket, session_id: str):
                     payload = {
                         "simple_text": fields[b"simple_text"].decode("utf-8"),
                         "expanded_text": fields[b"expanded_text"].decode("utf-8"),
-                        "notes_for_hearing": fields[b"notes_for_hearing"].decode("utf-8"),
                     }
                 except KeyError:
                     # Skip malformed entries
