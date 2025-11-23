@@ -12,6 +12,7 @@ interface UseEchoNotesSessionReturn {
   transcriptError: string | null;
   summaryError: string | null;
   summary: Summary | null;
+  isProcessing: boolean; // True when transcript is being sent but no summary yet
   sendTranscriptChunk: (text: string) => void;
 }
 
@@ -34,6 +35,8 @@ export function useEchoNotesSession(
   const [transcriptError, setTranscriptError] = useState<string | null>(null);
   const [summaryError, setSummaryError] = useState<string | null>(null);
   const [summary, setSummary] = useState<Summary | null>(null);
+  const [isProcessing, setIsProcessing] = useState(false);
+  const hasReceivedTranscriptRef = useRef<boolean>(false);
 
   const transcriptWsRef = useRef<WebSocket | null>(null);
   const summaryWsRef = useRef<WebSocket | null>(null);
@@ -110,6 +113,7 @@ export function useEchoNotesSession(
               simple_text: data.simple_text || "",
               expanded_text: data.expanded_text || "",
             });
+            setIsProcessing(false);
           }
         } catch (error) {
           // Suppress console spam
@@ -186,6 +190,9 @@ export function useEchoNotesSession(
         return; // Don't send empty chunks
       }
 
+      hasReceivedTranscriptRef.current = true;
+      setIsProcessing(true);
+
       const ws = transcriptWsRef.current;
       if (ws && ws.readyState === WebSocket.OPEN) {
         try {
@@ -210,6 +217,7 @@ export function useEchoNotesSession(
     transcriptError,
     summaryError,
     summary,
+    isProcessing: isProcessing && hasReceivedTranscriptRef.current,
     sendTranscriptChunk,
   };
 }

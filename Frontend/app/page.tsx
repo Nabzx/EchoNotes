@@ -38,9 +38,11 @@ export default function EchoNotesLanding() {
     backgroundPattern: 'none'  // 🆕 NEW: Track which pattern is selected
   });
   const [showCustomizer, setShowCustomizer] = useState(false);
+  const [notesTab, setNotesTab] = useState<'simple' | 'detailed' | 'hearing'>('simple');
+  const sessionId = "demo";
   
   // Real-time transcription and WebSocket hooks
-  const echoNotesSession = useEchoNotesSession("demo");
+  const echoNotesSession = useEchoNotesSession(sessionId);
   const {
     isListening,
     isSupported: isSpeechSupported,
@@ -55,6 +57,13 @@ export default function EchoNotesLanding() {
   
   // Derived state for UI
   const [transcriptProgress, setTranscriptProgress] = useState(0);
+  
+  // Helper to convert simple_text to bullet points
+  const formatSimpleText = (text: string): string[] => {
+    if (!text) return [];
+    const sentences = text.split(/[.!?]\s+/).filter(s => s.trim().length > 0);
+    return sentences.length >= 2 ? sentences : [];
+  };
 
   // Ensure body gets the correct data-theme attribute for CSS variables
   useEffect(() => {
@@ -143,11 +152,6 @@ export default function EchoNotesLanding() {
     return 'font-sans';
   };
 
-  const sampleVideos = [
-    { title: "Functions Explained Simply", channel: "Khan Academy", views: "2.3M", topic: "functions" },
-    { title: "Linear Functions Made Easy", channel: "The Organic Chemistry Tutor", views: "890K", topic: "functions" },
-    { title: "Understanding Function Notation", channel: "Professor Leonard", views: "456K", topic: "functions" }
-  ];
 
   // Compute dynamic styles for accessibility
   const mainContentStyle: React.CSSProperties = {
@@ -361,30 +365,54 @@ export default function EchoNotesLanding() {
                 <Mic className={`w-8 h-8 ${isListening ? 'animate-pulse' : ''}`} style={{ color: colors.purple }} />
                 Live Lecture Listening
               </h2>
-              <button
-                onClick={() => {
-                  if (isListening) {
-                    stopListening();
-                  } else {
-                    startListening();
-                  }
-                }}
-                disabled={!isSpeechSupported}
-                className="px-6 py-3 rounded-lg font-bold flex items-center gap-2 hover:scale-105 transition-transform disabled:opacity-50 disabled:cursor-not-allowed"
-                style={{ backgroundColor: isListening ? colors.sage : colors.purple, color: colors.dark }}
-              >
-                {isListening ? (
-                  <>
-                    <div className="w-3 h-3 bg-red-500 rounded-full animate-pulse"></div>
-                    Listening...
-                  </>
-                ) : (
-                  <>
-                    <Play className="w-5 h-5" />
-                    Start Live Notes
-                  </>
-                )}
-              </button>
+              <div className="flex items-center gap-4">
+                <span className="text-sm" style={{ color: colors.mint }}>
+                  Session: {sessionId}
+                </span>
+                <button
+                  onClick={() => {
+                    console.log("Toggling listening state" + isListening);
+                    if (isListening) {
+                      stopListening();
+                    } else {
+                      startListening();
+                    }
+                  }}
+                  disabled={!isSpeechSupported}
+                  className="px-6 py-3 rounded-lg font-bold flex items-center gap-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                  style={{ 
+                    backgroundColor: isListening ? colors.sage : colors.purple, 
+                    color: colors.dark,
+                    boxShadow: isListening ? '0 4px 6px rgba(0,0,0,0.1)' : '0 2px 4px rgba(0,0,0,0.1)',
+                  }}
+                  onMouseEnter={(e) => {
+                    if (!isListening && isSpeechSupported) {
+                      e.currentTarget.style.backgroundColor = colors.purple;
+                      e.currentTarget.style.opacity = '0.9';
+                      e.currentTarget.style.transform = 'scale(1.02)';
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    if (!isListening) {
+                      e.currentTarget.style.backgroundColor = colors.purple;
+                      e.currentTarget.style.opacity = '1';
+                      e.currentTarget.style.transform = 'scale(1)';
+                    }
+                  }}
+                >
+                  {isListening ? (
+                    <>
+                      <div className="w-3 h-3 bg-red-500 rounded-full animate-pulse"></div>
+                      Stop Live Notes
+                    </>
+                  ) : (
+                    <>
+                      <Play className="w-5 h-5" />
+                      Start Live Notes
+                    </>
+                  )}
+                </button>
+              </div>
             </div>
 
             {/* Error Messages */}
@@ -427,9 +455,9 @@ export default function EchoNotesLanding() {
               </div>
             )}
 
-            {/* Live Transcript and Summaries */}
-            <div className="grid md:grid-cols-3 gap-6">
-              {/* Live Transcript (What You're Hearing) */}
+            {/* Live Transcript and Notes Panel - Two Box Layout */}
+            <div className="grid md:grid-cols-2 gap-6">
+              {/* Left Box: Live Transcript */}
               <div className={`p-6 rounded-xl relative ${colorblindClass}`} style={{ backgroundColor: colors.sage }}>
                 {/* Overlay for this section only */}
                 {customization.overlay !== 'none' && (
@@ -453,12 +481,12 @@ export default function EchoNotesLanding() {
                   <Headphones className="w-5 h-5" style={{ color: colors.mint }} />
                   <h3 className="font-bold" style={{ color: colors.mint }}>Live Transcript</h3>
                 </div>
-                <p className="leading-relaxed min-h-[100px]" style={{ color: colors.mint }}>
+                <p className="leading-relaxed min-h-[200px]" style={{ color: colors.mint }}>
                   {liveTranscript || (isListening ? "Listening..." : "Click 'Start Live Notes' to begin transcription.")}
                 </p>
               </div>
 
-              {/* Simple Text (for Dyslexia) */}
+              {/* Right Box: Notes Panel with Tabs */}
               <div className={`p-6 rounded-xl relative ${colorblindClass}`} style={{ backgroundColor: colors.mint }}>
                 {/* Overlay for this section only */}
                 {customization.overlay !== 'none' && (
@@ -478,75 +506,109 @@ export default function EchoNotesLanding() {
                     }}
                   />
                 )}
-                <div className="flex items-center gap-2 mb-4">
-                  <FileText className="w-5 h-5" style={{ color: 'var(--foreground)' }} />
-                  <h3 className="font-bold" style={{ color: 'var(--foreground)' }}>Simple Text</h3>
+                
+                {/* Tab Selector */}
+                <div className="flex gap-2 mb-4 border-b-2" style={{ borderColor: colors.sage }}>
+                  <button
+                    onClick={() => setNotesTab('simple')}
+                    className="px-4 py-2 font-semibold transition-colors"
+                    style={{
+                      color: notesTab === 'simple' ? 'var(--foreground)' : colors.sage,
+                      borderBottom: notesTab === 'simple' ? `3px solid ${colors.purple}` : '3px solid transparent',
+                    }}
+                  >
+                    Simple Text
+                  </button>
+                  <button
+                    onClick={() => setNotesTab('detailed')}
+                    className="px-4 py-2 font-semibold transition-colors"
+                    style={{
+                      color: notesTab === 'detailed' ? 'var(--foreground)' : colors.sage,
+                      borderBottom: notesTab === 'detailed' ? `3px solid ${colors.purple}` : '3px solid transparent',
+                    }}
+                  >
+                    Detailed Steps
+                  </button>
+                  <button
+                    onClick={() => setNotesTab('hearing')}
+                    className="px-4 py-2 font-semibold transition-colors"
+                    style={{
+                      color: notesTab === 'hearing' ? 'var(--foreground)' : colors.sage,
+                      borderBottom: notesTab === 'hearing' ? `3px solid ${colors.purple}` : '3px solid transparent',
+                    }}
+                  >
+                    Hearing Notes
+                  </button>
                 </div>
-                <p className="leading-relaxed min-h-[100px]" style={{ color: 'var(--foreground)' }}>
-                  {echoNotesSession.summary?.simple_text || (isListening ? "Processing..." : "Summaries will appear here when you start listening.")}
-                </p>
-              </div>
 
-              {/* Expanded Text (for Dyscalculia) */}
-              <div className={`p-6 rounded-xl relative ${colorblindClass}`} style={{ backgroundColor: colors.mint }}>
-                {/* Overlay for this section only */}
-                {customization.overlay !== 'none' && (
-                  <div
-                    aria-hidden="true"
-                    style={{
-                      pointerEvents: 'none',
-                      position: 'absolute',
-                      zIndex: 2,
-                      top: 0,
-                      left: 0,
-                      width: '100%',
-                      height: '100%',
-                      backgroundColor: overlays[customization.overlay],
-                      borderRadius: 'inherit',
-                      transition: 'background-color 0.3s ease',
-                    }}
-                  />
-                )}
-                <div className="flex items-center gap-2 mb-4">
-                  <Brain className="w-5 h-5" style={{ color: 'var(--foreground)' }} />
-                  <h3 className="font-bold" style={{ color: 'var(--foreground)' }}>Detailed Steps</h3>
+                {/* Tab Content */}
+                <div className="min-h-[200px]">
+                  {notesTab === 'simple' && (
+                    <div>
+                      {echoNotesSession.isProcessing && !echoNotesSession.summary?.simple_text ? (
+                        <p className="leading-relaxed" style={{ color: 'var(--foreground)' }}>
+                          Processing summary...
+                        </p>
+                      ) : echoNotesSession.summary?.simple_text ? (
+                        (() => {
+                          const bullets = formatSimpleText(echoNotesSession.summary.simple_text);
+                          return bullets.length >= 2 ? (
+                            <ul className="list-disc list-inside space-y-2" style={{ color: 'var(--foreground)' }}>
+                              {bullets.map((bullet, idx) => (
+                                <li key={idx} className="leading-relaxed">{bullet.trim()}</li>
+                              ))}
+                            </ul>
+                          ) : (
+                            <p className="leading-relaxed" style={{ color: 'var(--foreground)' }}>
+                              {echoNotesSession.summary.simple_text}
+                            </p>
+                          );
+                        })()
+                      ) : (
+                        <p className="leading-relaxed" style={{ color: 'var(--foreground)' }}>
+                          Summaries will appear here when you start listening.
+                        </p>
+                      )}
+                    </div>
+                  )}
+
+                  {notesTab === 'detailed' && (
+                    <div>
+                      {echoNotesSession.isProcessing && !echoNotesSession.summary?.expanded_text ? (
+                        <p className="leading-relaxed" style={{ color: 'var(--foreground)' }}>
+                          Processing summary...
+                        </p>
+                      ) : echoNotesSession.summary?.expanded_text ? (
+                        <div className="leading-relaxed space-y-3" style={{ color: 'var(--foreground)' }}>
+                          {echoNotesSession.summary.expanded_text.split('\n\n').map((para, idx) => (
+                            <p key={idx}>{para.trim()}</p>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="leading-relaxed" style={{ color: 'var(--foreground)' }}>
+                          Step-by-step explanations will appear here.
+                        </p>
+                      )}
+                    </div>
+                  )}
+
+                  {notesTab === 'hearing' && (
+                    <div className="leading-relaxed space-y-3" style={{ color: 'var(--foreground)' }}>
+                      <p>
+                        EchoNotes provides a clean, real-time transcript that helps students with hearing impairments 
+                        follow along with lectures.
+                      </p>
+                      <ul className="list-disc list-inside space-y-2">
+                        <li>Live transcript captures everything the lecturer says</li>
+                        <li>Visual emphasis helps identify key points</li>
+                        <li>Encourages lecturers to face the audience for better visibility</li>
+                        <li>No audio required - everything is text-based</li>
+                      </ul>
+                    </div>
+                  )}
                 </div>
-                <p className="leading-relaxed min-h-[100px]" style={{ color: 'var(--foreground)' }}>
-                  {echoNotesSession.summary?.expanded_text || (isListening ? "Processing..." : "Step-by-step explanations will appear here.")}
-                </p>
               </div>
             </div>
-
-            {/* Notes for Hearing Impairments */}
-            {echoNotesSession.summary?.notes_for_hearing && (
-              <div className={`mt-6 p-6 rounded-xl relative ${colorblindClass}`} style={{ backgroundColor: colors.sage }}>
-                {/* Overlay for this section only */}
-                {customization.overlay !== 'none' && (
-                  <div
-                    aria-hidden="true"
-                    style={{
-                      pointerEvents: 'none',
-                      position: 'absolute',
-                      zIndex: 2,
-                      top: 0,
-                      left: 0,
-                      width: '100%',
-                      height: '100%',
-                      backgroundColor: overlays[customization.overlay],
-                      borderRadius: 'inherit',
-                      transition: 'background-color 0.3s ease',
-                    }}
-                  />
-                )}
-                <div className="flex items-center gap-2 mb-4">
-                  <Volume2 className="w-5 h-5" style={{ color: colors.mint }} />
-                  <h3 className="font-bold" style={{ color: colors.mint }}>Context & What You Might Have Missed</h3>
-                </div>
-                <p className="leading-relaxed" style={{ color: colors.mint }}>
-                  {echoNotesSession.summary.notes_for_hearing}
-                </p>
-              </div>
-            )}
 
             {/* Progress Bar */}
             {isListening && (
@@ -561,31 +623,6 @@ export default function EchoNotesLanding() {
             )}
           </div>
 
-          {/* Video Recommendations Section */}
-          {transcriptProgress > 90 && (
-            <div className="p-8" style={{ backgroundColor: colors.mint, color: 'var(--foreground)' }}>
-              <h3 className="text-2xl font-bold mb-4 flex items-center gap-2" style={{ color: 'var(--foreground)' }}>
-                <Youtube className="w-6 h-6" style={{ color: colors.purple }} />
-                Recommended Study Videos for "Functions"
-              </h3>
-              <div className="grid md:grid-cols-3 gap-4">
-                {sampleVideos.map((video, idx) => (
-                  <div
-                    key={idx}
-                    className="p-4 rounded-lg border-2 hover:scale-105 transition-transform cursor-pointer"
-                    style={{ backgroundColor: colors.mint, borderColor: colors.purple }}
-                  >
-                    <div className="w-full h-32 rounded mb-3 flex items-center justify-center" style={{ backgroundColor: colors.sage }}>
-                      <Play className="w-12 h-12" style={{ color: colors.mint }} />
-                    </div>
-                    <h4 className="font-bold mb-2" style={{ color: 'var(--foreground)' }}>{video.title}</h4>
-                    <p className="text-sm mb-1" style={{ color: colors.sage }}>{video.channel}</p>
-                    <p className="text-sm" style={{ color: colors.sage }}>{video.views} views</p>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
         </div>
 
         {/* How It Works */}
@@ -626,15 +663,64 @@ export default function EchoNotesLanding() {
           </div>
         </div>
 
-        {/* CTA */}
-        <div className="text-center">
-          <button className="px-12 py-5 rounded-xl font-bold text-xl shadow-2xl hover:scale-105 transition-transform flex items-center gap-3 mx-auto" style={{ backgroundColor: colors.purple, color: 'var(--foreground)' }}>
-            <Sparkles className="w-6 h-6" />
-            Try EchoNotes Now
-          </button>
-          <p className="mt-6 text-lg" style={{ color: colors.sage }}>
-            Making learning clearer for everyone
-          </p>
+        {/* Recommended Videos Section */}
+        <div className="max-w-4xl mx-auto mb-16">
+          <h2 className="text-4xl font-bold text-center mb-12" style={{ color: 'var(--foreground)' }}>
+            Recommended Study Videos
+          </h2>
+          <div className="grid md:grid-cols-3 gap-6">
+            <a
+              href="https://www.youtube.com/watch?v=dQw4w9WgXcQ"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="p-6 rounded-xl border-2 hover:scale-105 transition-transform cursor-pointer block"
+              style={{ backgroundColor: colors.mint, borderColor: colors.purple }}
+            >
+              <div className="w-full h-32 rounded mb-4 flex items-center justify-center" style={{ backgroundColor: colors.sage }}>
+                <Youtube className="w-12 h-12" style={{ color: colors.mint }} />
+              </div>
+              <h4 className="font-bold mb-2" style={{ color: 'var(--foreground)' }}>
+                Effective Note-Taking Strategies
+              </h4>
+              <p className="text-sm mb-2" style={{ color: colors.sage }}>
+                Learn proven techniques for taking better notes during lectures
+              </p>
+            </a>
+            <a
+              href="https://www.youtube.com/watch?v=dQw4w9WgXcQ"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="p-6 rounded-xl border-2 hover:scale-105 transition-transform cursor-pointer block"
+              style={{ backgroundColor: colors.mint, borderColor: colors.purple }}
+            >
+              <div className="w-full h-32 rounded mb-4 flex items-center justify-center" style={{ backgroundColor: colors.sage }}>
+                <Youtube className="w-12 h-12" style={{ color: colors.mint }} />
+              </div>
+              <h4 className="font-bold mb-2" style={{ color: 'var(--foreground)' }}>
+                Study Skills for University
+              </h4>
+              <p className="text-sm mb-2" style={{ color: colors.sage }}>
+                Essential study skills and time management tips for students
+              </p>
+            </a>
+            <a
+              href="https://www.youtube.com/watch?v=dQw4w9WgXcQ"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="p-6 rounded-xl border-2 hover:scale-105 transition-transform cursor-pointer block"
+              style={{ backgroundColor: colors.mint, borderColor: colors.purple }}
+            >
+              <div className="w-full h-32 rounded mb-4 flex items-center justify-center" style={{ backgroundColor: colors.sage }}>
+                <Youtube className="w-12 h-12" style={{ color: colors.mint }} />
+              </div>
+              <h4 className="font-bold mb-2" style={{ color: 'var(--foreground)' }}>
+                Accessibility in Education
+              </h4>
+              <p className="text-sm mb-2" style={{ color: colors.sage }}>
+                Understanding accessibility tools and inclusive learning practices
+              </p>
+            </a>
+          </div>
         </div>
       </div>
       </div>
